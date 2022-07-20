@@ -161,10 +161,12 @@ class CharacteristicTile extends StatelessWidget {
   final VoidCallback? onReadPressed;
   final VoidCallback? onWritePressed;
   final VoidCallback? onNotificationPressed;
+  final List<int>? data;
 
   const CharacteristicTile(
       {Key? key,
       required this.characteristic,
+      required this.data,
       required this.descriptorTiles,
       this.onReadPressed,
       this.onWritePressed,
@@ -194,7 +196,7 @@ class CharacteristicTile extends StatelessWidget {
                 )
               ],
             ),
-            subtitle: Text(String.fromCharCodes(value as Iterable<int>)),
+            subtitle: Text(String.fromCharCodes(data as Iterable<int>)),
             contentPadding: EdgeInsets.all(0.0),
           ),
           trailing: Row(

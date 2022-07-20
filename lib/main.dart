@@ -154,13 +154,20 @@ class FindDevicesScreen extends StatelessWidget {
 bool flag = true;
 String command_A = '0';
 String command_B = '1';
+List<int> aa = [];
+
 //loop to each character in string
 
-class DeviceScreen extends StatelessWidget {
+class DeviceScreen extends StatefulWidget {
   const DeviceScreen({Key? key, required this.device}) : super(key: key);
 
   final BluetoothDevice device;
 
+  @override
+  State<DeviceScreen> createState() => _DeviceScreenState();
+}
+
+class _DeviceScreenState extends State<DeviceScreen> {
   List<int> _getRandomBytes() {
     final math = Random();
     return [
@@ -182,17 +189,50 @@ class DeviceScreen extends StatelessWidget {
                     characteristic: c,
                     onReadPressed: () => c.read(),
                     onWritePressed: () async {
-                      List<int> a = [];
+                      // List<int> a = [];
+                      aa = [];
 
-                      for (int i = 0; i < command_A.length; i++) {
-                        a.add(flag
-                            ? command_A.codeUnitAt(i)
-                            : command_B.codeUnitAt(i));
-                      }
-                      await c.write(a, withoutResponse: true);
-                      flag = !flag;
-                      await c.read();
+                      // for (int i = 0; i < command_A.length; i++) {
+                      //   a.add(flag
+                      //       ? command_A.codeUnitAt(i)
+                      //       : command_B.codeUnitAt(i));
+                      // }
+                      await c.write([48], withoutResponse: true);
+                      Future.delayed(Duration(seconds: 2), () async {
+                        await c.read().then((value) async {
+                          List<int> temp = value.toList();
+                          // temp = value;
+
+                          temp.removeAt(0);
+                          temp.removeAt(0);
+                          print("first response");
+                          print(temp);
+                          print(String.fromCharCodes(temp as Iterable<int>));
+                          aa = aa + temp;
+                          await c.write([49], withoutResponse: true);
+                          await c.read().then((value) async {
+                            List<int> temp = value.toList();
+                            // temp = value;
+                            temp.removeAt(0);
+                            temp.removeAt(0);
+
+                            print("2nd response");
+                            print(String.fromCharCodes(temp as Iterable<int>));
+                            aa = aa + temp;
+                            setState(() {});
+                            print("real values:");
+                            print(String.fromCharCodes(aa as Iterable<int>));
+                          });
+                        });
+                      });
+
+                      // for (int i = 0; i < aa.length; i++) {
+                      //   aa.add(aa[i]);
+                      // }
+                      print("object");
+                      print(aa);
                     },
+                    data: aa,
                     onNotificationPressed: () async {
                       await c.setNotifyValue(!c.isNotifying);
                       await c.read();
@@ -218,21 +258,21 @@ class DeviceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(device.name),
+        title: Text(widget.device.name),
         actions: <Widget>[
           StreamBuilder<BluetoothDeviceState>(
-            stream: device.state,
+            stream: widget.device.state,
             initialData: BluetoothDeviceState.connecting,
             builder: (c, snapshot) {
               VoidCallback? onPressed;
               String text;
               switch (snapshot.data) {
                 case BluetoothDeviceState.connected:
-                  onPressed = () => device.disconnect();
+                  onPressed = () => widget.device.disconnect();
                   text = 'DISCONNECT';
                   break;
                 case BluetoothDeviceState.disconnected:
-                  onPressed = () => device.connect();
+                  onPressed = () => widget.device.connect();
                   text = 'CONNECT';
                   break;
                 default:
@@ -257,7 +297,7 @@ class DeviceScreen extends StatelessWidget {
         child: Column(
           children: <Widget>[
             StreamBuilder<BluetoothDeviceState>(
-              stream: device.state,
+              stream: widget.device.state,
               initialData: BluetoothDeviceState.connecting,
               builder: (c, snapshot) => ListTile(
                 leading: (snapshot.data == BluetoothDeviceState.connected)
@@ -265,16 +305,16 @@ class DeviceScreen extends StatelessWidget {
                     : Icon(Icons.bluetooth_disabled),
                 title: Text(
                     'Device is ${snapshot.data.toString().split('.')[1]}.'),
-                subtitle: Text('${device.id}'),
+                subtitle: Text('${widget.device.id}'),
                 trailing: StreamBuilder<bool>(
-                  stream: device.isDiscoveringServices,
+                  stream: widget.device.isDiscoveringServices,
                   initialData: false,
                   builder: (c, snapshot) => IndexedStack(
                     index: snapshot.data! ? 1 : 0,
                     children: <Widget>[
                       IconButton(
                         icon: Icon(Icons.refresh),
-                        onPressed: () => device.discoverServices(),
+                        onPressed: () => widget.device.discoverServices(),
                       ),
                       IconButton(
                         icon: SizedBox(
@@ -292,19 +332,19 @@ class DeviceScreen extends StatelessWidget {
               ),
             ),
             StreamBuilder<int>(
-              stream: device.mtu,
+              stream: widget.device.mtu,
               initialData: 0,
               builder: (c, snapshot) => ListTile(
                 title: Text('MTU Size'),
                 subtitle: Text('${snapshot.data} bytes'),
                 trailing: IconButton(
                   icon: Icon(Icons.edit),
-                  onPressed: () => device.requestMtu(223),
+                  onPressed: () => widget.device.requestMtu(223),
                 ),
               ),
             ),
             StreamBuilder<List<BluetoothService>>(
-              stream: device.services,
+              stream: widget.device.services,
               initialData: [],
               builder: (c, snapshot) {
                 return Column(
